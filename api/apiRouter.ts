@@ -88,3 +88,8 @@ apiRouter.get('/ensureDbMatching', checkJwt, async (req: express.Request, res: e
         console.log('The auth0Id has already recorded.');
     }
 });
+
+apiRouter.get('/myfeed', (req: express.Request, res:express.Response) => {
+    console.log(`${currentTimeReadable()} | /api/myfeed endpoint is accessed.`);
+
+});

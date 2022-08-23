@@ -51,9 +51,13 @@ app.get("/", async (req: express.Request, res: express.Response) => {
 
 app.get("/query", async (req: express.Request, res: express.Response) => {
     console.log(`${currentTimeReadable()} | Call query api. | Query : ${req.query.query}`);
-    let response: AxiosResponse = await axios.get(encodeURI(`https://newsapi.org/v2/everything?q=${req.query.query}&apiKey=86414c1e4e4b4e7195657297a5f7a53d`));
-    console.log(`There are ${response.data.articles.length} results.`);
-    res.send(response.data);
+    axios.get(encodeURI(`https://newsapi.org/v2/everything?q=${req.query.query}&apiKey=86414c1e4e4b4e7195657297a5f7a53d`))
+        .then( (axiosResponse: AxiosResponse) => {
+            console.log(`There are ${axiosResponse.data.articles.length} results.`);
+            res.send(axiosResponse.data);
+        }).catch( (error) => {
+            console.error(error);
+    });
 });
 
 app.get('/callback', (req: express.Request, res: express.Response) => {

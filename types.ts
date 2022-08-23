@@ -20,8 +20,14 @@ type returnOfGetJpNewsByCategories = {
     [prop in category]: arrayOfArticle;
 };
 
+type feedObject = {
+    [word: string]: arrayOfArticle
+}
+
+type returnOfMyfeed = Array<feedObject>
+
 type auth = {
     email: string;
 }
 
-export type {category, article, arrayOfArticle, returnOfGetJpNewsByCategories, auth}
+export type {category, article, arrayOfArticle, returnOfGetJpNewsByCategories, auth, feedObject, returnOfMyfeed}

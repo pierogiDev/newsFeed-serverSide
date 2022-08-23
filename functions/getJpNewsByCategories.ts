@@ -1,7 +1,7 @@
 import {category} from "../types";
 import axios, {AxiosResponse} from "axios";
 
-import {currentTimeReadable} from "./currentTimeReadable.js";
+import {currentTimeReadable} from "@pierogi.dev/readable_time";
 
 import type {returnOfGetJpNewsByCategories} from "../types";
 

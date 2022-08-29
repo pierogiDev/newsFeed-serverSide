@@ -53,10 +53,11 @@ app.get("/query", async (req: express.Request, res: express.Response) => {
     console.log(`${currentTimeReadable()} | Call query api. | Query : ${req.query.query}`);
     axios.get(encodeURI(`https://newsapi.org/v2/everything?q=${req.query.query}&apiKey=86414c1e4e4b4e7195657297a5f7a53d`))
         .then( (axiosResponse: AxiosResponse) => {
-            console.log(`There are ${axiosResponse.data.articles.length} results.`);
-            res.send(axiosResponse.data);
+            console.log(`${currentTimeReadable()} | There are ${axiosResponse.data.articles.length} results.`);
+            res.status(200).send(axiosResponse.data);
         }).catch( (error) => {
             console.error(error);
+            res.status(400).send();
     });
 });
 

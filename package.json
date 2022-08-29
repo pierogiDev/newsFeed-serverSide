@@ -17,7 +17,8 @@
     "nocache": "^3.0.4",
     "mysql2": "^2.3.3",
     "jwt-decode": "^3.1.2",
-    "@pierogi.dev/readable_time": "^1.0.5"
+    "@pierogi.dev/readable_time": "^1.0.5",
+    "@pierogi.dev/get_mysql_connection": "^1.0.2"
   },
   "devDependencies": {
     "@types/body-parser": "^1.19.2",

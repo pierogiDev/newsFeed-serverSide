@@ -21,13 +21,13 @@ type returnOfGetJpNewsByCategories = {
 };
 
 type feedObject = {
-    [word: string]: arrayOfArticle
+    [word: string]: arrayOfArticle,
 }
 
 type returnOfMyfeed = Array<feedObject>
 
 type auth = {
-    email: string;
+    email: string,
 }
 
 export type {category, article, arrayOfArticle, returnOfGetJpNewsByCategories, auth, feedObject, returnOfMyfeed}

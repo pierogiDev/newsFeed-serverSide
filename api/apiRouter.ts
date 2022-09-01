@@ -6,28 +6,22 @@ import {checkJwt} from "../middleware/check-jwt.js";
 import {currentTimeReadable} from "@pierogi.dev/readable_time"
 import {decodeJwt} from "../functions/jwtDecode.js";
 
-import {User} from "../models/user.js"
-
 import type {feedObject} from "../types";
+import {userFeeds} from "../models/userFeeds.js";
 
 export const apiRouter = express.Router();
-
-//TODO To no use the users table.
-//TODO To use then method chain with sql query.
 
 apiRouter.post('/addWord', checkJwt, async (req: express.Request, res: express.Response) => {
     console.log(`${currentTimeReadable()} | Access to /api/addWord endpoint.`);
 
-    let auth0Id: string | undefined = req.headers.authorization ? decodeJwt(req.headers.authorization).sub : '';
+    let auth0Id: string | undefined = req.headers.authorization ? decodeJwt(req.headers.authorization).sub : undefined;
     let addRequestWord: string = req.body.addWord ? req.body.addWord : '';
     let addResult: boolean = false;
 
-    if (!await User.ensureDbMatching(auth0Id)) {
-        res.status(400).send();
-    }
-
     if (auth0Id) {
-        addResult = await User.addFeed(auth0Id, addRequestWord);
+        addResult = await userFeeds.recordUserFeed(auth0Id, addRequestWord);
+    } else {
+        res.status(400).send();
     }
 
     if (addResult) {
@@ -43,40 +37,36 @@ apiRouter.post('/addWord', checkJwt, async (req: express.Request, res: express.R
 apiRouter.post('/deleteWord', checkJwt, async (req: express.Request, res: express.Response) => {
     console.log(`${currentTimeReadable()} | Access to /api/deleteWord endpoint. | Request word : ${req.body.deleteWord}`);
 
-    let auth0Id: string | undefined = req.headers.authorization ? decodeJwt(req.headers.authorization).sub : '';
+    let auth0Id: string | undefined = req.headers.authorization ? decodeJwt(req.headers.authorization).sub : undefined;
     let deleteRequestWord: string = req.body.deleteWord ? req.body.deleteWord : '';
     let deleteResult: boolean = false;
 
-    if (!await User.ensureDbMatching(auth0Id)) {
-        res.status(400).send();
-    }
-
     if (auth0Id) {
-        deleteResult = await User.deleteFeed(auth0Id, deleteRequestWord);
+        deleteResult = await userFeeds.deleteUserFeed(auth0Id, deleteRequestWord);
+    } else {
+        res.status(400).send();
     }
 
     if (deleteResult) {
         console.log(`${currentTimeReadable()} | The user's feed word has been deleted successfully.`);
         res.status(200).send();
     } else {
+        console.log(`${currentTimeReadable()} | Some error occurred while deleting a user's feed word.`);
         res.status(400).send();
     }
 
 });
 
-
 apiRouter.get('/myfeed', checkJwt, async (req: express.Request, res: express.Response) => {
     console.log(`${currentTimeReadable()} | /api/myfeed endpoint is accessed.`);
 
-    let auth0Id: string | undefined = req.headers.authorization ? decodeJwt(req.headers.authorization).sub : '';
-
-    if (!await User.ensureDbMatching(auth0Id)) {
-        res.status(400).send();
-    }
+    let auth0Id: string | undefined = req.headers.authorization ? decodeJwt(req.headers.authorization).sub : undefined;
 
     if (auth0Id) {
-        let userFeeds: feedObject = await User.getMyFeeds(auth0Id);
-        res.status(200).send(userFeeds);
+        let allFeedsOfUser: feedObject = await userFeeds.getAllFeedsOfUser(auth0Id);
+        res.status(200).send(allFeedsOfUser);
+    } else {
+        res.status(400).send();
     }
 
 });

@@ -61,10 +61,6 @@ app.get("/query", async (req: express.Request, res: express.Response) => {
     });
 });
 
-app.get('/callback', (req: express.Request, res: express.Response) => {
-    res.send('logged in');
-})
-
 let feedApiHttpServer: http.Server = http.createServer(app);
 feedApiHttpServer.listen(4001);
 

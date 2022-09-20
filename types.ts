@@ -14,20 +14,24 @@ type article = {
     content: string,
 }
 
-type arrayOfArticle = Array<article>;
+type articles = Array<article>;
 
 type returnOfGetJpNewsByCategories = {
-    [prop in category]: arrayOfArticle;
+    [prop in category]: articles;
 };
 
-type feedObject = {
-    [word: string]: arrayOfArticle,
+type myFeedObject = {
+    [word: string]: {
+        recordedAt?: string,
+        articles: articles
+    },
 }
 
-type returnOfMyfeed = Array<feedObject>
+type myFeed = Array<myFeedObject>
 
-type auth = {
-    email: string,
-}
+type feedList = Array<{
+    feedWord: string,
+    recordedAt: string,
+}>
 
-export type {category, article, arrayOfArticle, returnOfGetJpNewsByCategories, auth, feedObject, returnOfMyfeed}
+export type {category, article, articles, returnOfGetJpNewsByCategories, myFeed, myFeedObject, feedList}

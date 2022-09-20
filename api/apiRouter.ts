@@ -6,7 +6,7 @@ import {checkJwt} from "../middleware/check-jwt.js";
 import {currentTimeReadable} from "@pierogi.dev/readable_time"
 import {decodeJwt} from "../functions/jwtDecode.js";
 
-import type {feedObject} from "../types";
+import type {myFeed} from "../types";
 import {userFeeds} from "../models/userFeeds.js";
 
 export const apiRouter = express.Router();
@@ -63,8 +63,22 @@ apiRouter.get('/myfeed', checkJwt, async (req: express.Request, res: express.Res
     let auth0Id: string | undefined = req.headers.authorization ? decodeJwt(req.headers.authorization).sub : undefined;
 
     if (auth0Id) {
-        let allFeedsOfUser: feedObject = await userFeeds.getAllFeedsOfUser(auth0Id);
+        let allFeedsOfUser: myFeed = await userFeeds.getAllFeedsOfUser(auth0Id);
         res.status(200).send(allFeedsOfUser);
+    } else {
+        res.status(400).send();
+    }
+
+});
+
+apiRouter.get('/feedlist', checkJwt, async (req: express.Request, res: express.Response) => {
+    console.log(`${currentTimeReadable()} | /api/feedlist endpoint is accessed.`);
+
+    let auth0Id: string | undefined = req.headers.authorization ? decodeJwt(req.headers.authorization).sub : undefined;
+
+    if (auth0Id) {
+        let feedList = await userFeeds.getFeedList(auth0Id);
+        res.status(200).send(feedList);
     } else {
         res.status(400).send();
     }

@@ -1,17 +1,16 @@
 //Import package
+//Import types
+import type {AxiosResponse} from "axios"
 import axios from "axios";
 
+import type {OkPacket, RowDataPacket} from "@pierogi.dev/get_mysql_connection";
 //Import package of my own made
 import {getMysqlConnection} from "@pierogi.dev/get_mysql_connection";
 import {unixTimeReadable} from "@pierogi.dev/readable_time";
 
 //Import model
 import {feedWord} from "./feedWord.js";
-
-//Import types
-import type {AxiosResponse} from "axios"
-import type {OkPacket, RowDataPacket, FieldPacket} from "@pierogi.dev/get_mysql_connection";
-import type {feedObject} from "../types";
+import type {feedList, myFeed, myFeedObject} from "../types";
 
 export class userFeeds {
     static async recordUserFeed(auth0Id: string, word: string): Promise<boolean> {
@@ -31,58 +30,104 @@ export class userFeeds {
 
         let recordedAt: string = unixTimeReadable((new Date().getTime() / 1000));
 
-        let recordUserFeed = await mysqlConnection.query<OkPacket>(`INSERT INTO newsFeed.userFeeds
-                                                                    SET ?`, {
+        let result: boolean = false;
+
+        await mysqlConnection.query<OkPacket>(`INSERT INTO newsFeed.userFeeds
+                                               SET ?`, {
             auth0Id: auth0Id,
-            wordId: feedWordId,
+            feedWordId: feedWordId,
             recordedAt: recordedAt
+        }).then(() => {
+            result = true;
+        }).catch(() => {
+            result = false;
         });
 
-        return !!recordUserFeed[0].affectedRows;
+        return result;
     }
 
     static async deleteUserFeed(auth0Id: string, word: string): Promise<boolean> {
         const mysqlConnection = getMysqlConnection(true);
-        let deleteUserFeed: [OkPacket[], FieldPacket[]] = [[], []];
+        let result: boolean = false;
 
-        let deleteWordId = await feedWord.getWordId(word);
+        let deleteWordId = await feedWord.getWordId(word).catch(() => {
+            result = false
+        });
 
-        if (deleteWordId) {
-            deleteUserFeed = await mysqlConnection.query<OkPacket[]>(`DELETE
-                                                                      FROM newsFeed.userFeeds
-                                                                      WHERE auth0Id = ?
-                                                                        AND wordId = ?`, [auth0Id, deleteWordId]);
-        }
+        await mysqlConnection.query<OkPacket[]>(`DELETE
+                                                 FROM newsFeed.userFeeds
+                                                 WHERE auth0Id = ?
+                                                   AND feedWordId = ?`, [auth0Id, deleteWordId])
+            .then(() => {
+                result = true
+            })
+            .catch(() => {
+                result = false
+            });
 
-        return !!deleteUserFeed[0].affectedRows;
+        return result;
 
     }
 
-    static async getAllFeedsOfUser(auth0Id: string): Promise<feedObject> {
+    static async getAllFeedsOfUser(auth0Id: string): Promise<myFeed> {
         const mysqlConnection = getMysqlConnection(true);
-        let allUserFeed: Array<string> = [];
-        let feedObject: feedObject = {};
+        let allFeedsOfUser: Array<string> = [];
+        let myFeed: myFeed = [];
+        let myFeedObject: myFeedObject = {};
 
         let [getAllUserFeedResult] = await mysqlConnection.query<RowDataPacket[]>(`SELECT feedWord
                                                                                    from newsFeed.feedWords
                                                                                    WHERE feedWordId = ANY
-                                                                                         (SELECT wordId FROM newsFeed.userFeeds WHERE auth0Id = ?)`, auth0Id);
+                                                                                         (SELECT feedWordId FROM newsFeed.userFeeds WHERE auth0Id = ?)`, auth0Id);
 
         if (getAllUserFeedResult.length !== 0) {
             getAllUserFeedResult.forEach((word) => {
-                allUserFeed.push(word.feedWord);
+                allFeedsOfUser.push(word.feedWord);
             });
         }
 
-        for (const word of allUserFeed) {
+        for (const word of allFeedsOfUser) {
             try {
-                let axiosResponse: AxiosResponse = await axios.get(encodeURI(`https://newsapi.org/v2/everything?q=${word}&apiKey=86414c1e4e4b4e7195657297a5f7a53d`));
-                feedObject[word] = axiosResponse.data.articles;
+                let axiosResponse: AxiosResponse = await axios.get(encodeURI(`https://newsapi.org/v2/everything?q=${word}&sortBy=relevancy&apiKey=86414c1e4e4b4e7195657297a5f7a53d`));
+                myFeedObject = {[word]: {articles: axiosResponse.data.articles}};
+                myFeed.push(myFeedObject);
             } catch (e) {
                 console.error(e);
             }
         }
 
-        return feedObject;
+        let feedList = await this.getFeedList(auth0Id);
+
+        console.log(myFeed);
+
+        myFeed.map((myFeedObject: myFeedObject) => {
+            myFeedObject[Object.keys(myFeedObject)[0]].recordedAt = feedList[feedList.findIndex(({feedWord}) => feedWord === Object.keys(myFeedObject)[0])].recordedAt;
+        });
+
+        // console.log(myFeed);
+
+        return myFeed;
+
+    }
+
+    static async getFeedList(auth0Id: string): Promise<feedList> {
+        const mysqlConnection = getMysqlConnection(true);
+
+        await mysqlConnection.query(`USE newsFeed;`);
+
+        let [feedList] = await mysqlConnection.query<RowDataPacket[]>(`SELECT feedWords.feedWord, userFeeds.recordedAt
+                                                                       FROM newsFeed.userFeeds
+                                                                                INNER JOIN feedWords on userFeeds.feedWordId = feedWords.feedWordId
+                                                                       WHERE auth0Id = ?`, auth0Id);
+
+        const formatDate = (date: Date) => {
+            return `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${('0' + date.getUTCDate()).slice(-2)} ${('0' + date.getUTCHours()).slice(-2)}:${('0' + date.getUTCMinutes()).slice(-2)}:${('0' + date.getUTCSeconds()).slice(-2)}`;
+        }
+
+        feedList.map((feed) => {
+            feed.recordedAt = formatDate(new Date(feed.recordedAt));
+        });
+
+        return feedList as feedList
     }
 }

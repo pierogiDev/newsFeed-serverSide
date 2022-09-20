@@ -1,21 +1,20 @@
-import * as dotenv from "dotenv";
-dotenv.config();
-import axios, {AxiosResponse} from "axios";
+import 'dotenv/config';
+import axios from "axios";
 import express from "express";
 import cors from "cors";
 import * as http from "http";
 import * as https from "https";
 import * as fs from "fs";
-import path from "path";
+// import path from "path";
 import Helmet from "helmet";
 import bodyParser from "body-parser";
-import cookieParser from "cookie-parser";
 import nocache from "nocache";
 import {apiRouter} from './api/apiRouter.js'
 
 import {currentTimeReadable} from "./functions/currentTimeReadable.js";
 import {getJpNewsByCategories} from "./functions/getJpNewsByCategories.js";
 
+import type {AxiosResponse} from "axios";
 import type {returnOfGetJpNewsByCategories} from './types';
 
 const app: express.Express = express();
@@ -36,8 +35,6 @@ app.use(express.urlencoded({extended: true}));
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
-
-app.use(cookieParser());
 
 app.use(nocache());
 app.use(Helmet());
@@ -61,10 +58,28 @@ app.get("/query", async (req: express.Request, res: express.Response) => {
     });
 });
 
-let feedApiHttpServer: http.Server = http.createServer(app);
-feedApiHttpServer.listen(4001);
+// let feedApiHttpServer: http.Server = http.createServer(app);
+// feedApiHttpServer.listen(4001);
 
 let returnOfGetJpNewsByCategories: returnOfGetJpNewsByCategories = await getJpNewsByCategories();
+
+//Make a socket server with browsers.
+//This http_server forces redirection http access to https access(Not response any pages and don't have socket event register).
+const feedApiHttpServer: http.Server = http.createServer((express()).all("*", function (request:express.Request, response: express.Response) {
+    response.redirect(`https://${request.hostname}${request.url}`);
+}));
+
+let httpsOption = {
+    key: fs.readFileSync(process.env.SSL_CERTIFICATIO_PRIVKEY as string),
+    cert: fs.readFileSync(process.env.SSL_CERTIFICATION_CERT as string),
+    ca: fs.readFileSync(process.env.SSL_CERTIFICATION_CHAIN as string),
+}
+
+// const https_server: https.Server = https.createServer(https_option, app);
+const feedApiHttpsServer: https.Server = https.createServer(httpsOption ,app);
+
+feedApiHttpServer.listen(8080);
+feedApiHttpsServer.listen(8443);
 
 //Get news periodically from the NewsAPI so as not to exceed its limitation.
 // setTimeout( async () => {
